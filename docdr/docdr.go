@@ -147,6 +147,8 @@ func runPackage(fset *token.FileSet, pkg *ast.Package) {
 			if ok {
 				if fn.Name.IsExported() && fn.Doc.Text() == "" {
 					fmt.Println("-----------------------------------------------------")
+					fmt.Println(filename)
+					fmt.Println("-----------------------------------------------------")
 					printNode(fset, fn)
 					fmt.Println()
 
