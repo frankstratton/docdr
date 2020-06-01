@@ -44,7 +44,7 @@ func printNode(fset *token.FileSet, node ast.Node) {
 	fmt.Println(s)
 }
 
-func promptForComment() string {
+func promptForComment(body string) string {
 	fmt.Print("Press 'Enter' to continue...")
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 
@@ -57,10 +57,15 @@ func promptForComment() string {
 		fmt.Printf("Error %s while creating tempFile", tmpFileErr)
 	}
 
-	path, err := exec.LookPath(vi)
-
+	// Write the candidate function into the tempfile first
+	err := ioutil.WriteFile(tempFile.Name(), []byte(body), 0644)
 	if err != nil {
-		fmt.Printf("Error %s while looking up for %s!!", path, vi)
+		log.Fatal(err)
+	}
+
+	path, err := exec.LookPath(vi)
+	if err != nil {
+		log.Fatal(errors.New("Error %s while looking up for %s!!", path, vi))
 	}
 
 	cmd := exec.Command(path, tmpFile.Name())
