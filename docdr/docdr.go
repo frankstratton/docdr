@@ -27,7 +27,7 @@ func processFieldList(fl *ast.FieldList) string {
 	return output
 }
 
-func printNode(fset *token.FileSet, node ast.Node) {
+func nodeString(fset *token.FileSet, node ast.Node) string {
 	switch v := node.(type) {
 	case *ast.Package:
 		for _, f := range v.Files {
@@ -41,14 +41,20 @@ func printNode(fset *token.FileSet, node ast.Node) {
 	format.Node(&buf, fset, node)
 
 	s := buf.String()
+
+	return s
+}
+func writeFile(fset *token.FileSet, node ast.Node, filename string) {
+	s := nodeString(fset, node)
+	ioutil.WriteFile(filename, []byte(s), 0644)
+}
+
+func printNode(fset *token.FileSet, node ast.Node) {
+	s := nodeString(fset, node)
 	fmt.Println(s)
 }
 
-func promptForComment(body string) string {
-	fmt.Print("Press 'Enter' to continue...")
-	bufio.NewReader(os.Stdin).ReadBytes('\n')
-
-	vi := "vim"
+func openEditor(body string) string {
 	tmpDir := os.TempDir()
 
 	tmpFile, tmpFileErr := ioutil.TempFile(tmpDir, "tempFilePrefix")
@@ -57,15 +63,20 @@ func promptForComment(body string) string {
 		fmt.Printf("Error %s while creating tempFile", tmpFileErr)
 	}
 
+	// Create reference function with fixedMarker
+	fixedMarker := "^^^^ ADD COMMENT ABOVE ---- DO NOT EDIT BELOW THIS LINE ----\n"
+	body = fixedMarker + body
+
 	// Write the candidate function into the tempfile first
-	err := ioutil.WriteFile(tempFile.Name(), []byte(body), 0644)
+	err := ioutil.WriteFile(tmpFile.Name(), []byte(body), 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	path, err := exec.LookPath(vi)
+	// TODO configure based on $EDITOR
+	path, err := exec.LookPath("vim")
 	if err != nil {
-		log.Fatal(errors.New("Error %s while looking up for %s!!", path, vi))
+		log.Fatal(err)
 	}
 
 	cmd := exec.Command(path, tmpFile.Name())
@@ -93,15 +104,12 @@ func promptForComment(body string) string {
 	}
 
 	comment := string(data)
+
+	comment = comment[0:strings.Index(comment, fixedMarker)]
 	comment = strings.TrimRight(comment, "\n")
 
 	lines := strings.Split(comment, "\n")
-
-	isComment, err := regexp.Compile("^\\s*//")
-
-	if err != nil {
-		log.Panic(err)
-	}
+	isComment := regexp.MustCompile("^\\s*//")
 
 	for i, line := range lines {
 		if !isComment.Match([]byte(line)) {
@@ -110,10 +118,24 @@ func promptForComment(body string) string {
 	}
 
 	return strings.Join(lines, "\n")
+
+}
+func promptForComment(body string) string {
+	fmt.Print("[e] to edit, [s] to skip: ")
+	char, _, _ := bufio.NewReader(os.Stdin).ReadRune()
+
+	switch char {
+	case 's':
+		return ""
+	case 'e':
+		return openEditor(body)
+	}
+
+	return ""
 }
 
 func runPackage(fset *token.FileSet, pkg *ast.Package) {
-	for _, f := range pkg.Files {
+	for filename, f := range pkg.Files {
 		comments := []*ast.CommentGroup{}
 		ast.Inspect(f, func(n ast.Node) bool {
 			c, ok := n.(*ast.CommentGroup)
@@ -124,11 +146,16 @@ func runPackage(fset *token.FileSet, pkg *ast.Package) {
 			fn, ok := n.(*ast.FuncDecl)
 			if ok {
 				if fn.Name.IsExported() && fn.Doc.Text() == "" {
-					fmt.Println()
+					fmt.Println("-----------------------------------------------------")
 					printNode(fset, fn)
 					fmt.Println()
 
-					text := promptForComment()
+					text := promptForComment(nodeString(fset, fn))
+
+					if text == "" {
+						return true
+					}
+
 					comment := &ast.Comment{
 						Text:  text,
 						Slash: fn.Pos() - 1,
@@ -146,8 +173,7 @@ func runPackage(fset *token.FileSet, pkg *ast.Package) {
 		// set ast's comments to the collected comments
 		f.Comments = comments
 
-		// TODO write the file back instead of printing here
-		printNode(fset, f)
+		writeFile(fset, f, filename)
 	}
 
 }
