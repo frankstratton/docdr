@@ -28,7 +28,6 @@ add new ones.  See https://github.com/frankstratton/DocDr for more details.`,
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("scan directory... '" + args[0] + "'")
 			var pack = ""
 
 			if len(args) > 1 {
