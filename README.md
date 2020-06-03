@@ -5,12 +5,14 @@ functions without godoc comments.  DocDr presents an interface to quickly add
 comments and rewrites your source files.
 
 # Usage
-
+```
+docdr run <source directory> <package name>
+```
 
 # Features
 
 
 # TODO
-Add commands:
-	o: Edit [o]riginal file; instead of opening a temp file open the original file and see to the function location
+* Fix non-doc comment preservation (this isn't an issue when opening the original file)
+* Add commands:
 	n: Never ask again; add a default doc string so we always skip this function
