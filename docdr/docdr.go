@@ -54,6 +54,56 @@ func printNode(fset *token.FileSet, node ast.Node) {
 	fmt.Println(s)
 }
 
+func getEditorArgs(editor string, filename string, line int) []string {
+
+	args := []string{}
+
+	if line > 0 {
+		args = append(args, fmt.Sprintf("+%d", line))
+	}
+
+	switch editor {
+	case "gvim":
+		args = append(args, "-f") // open in the forground
+		args = append(args, filename)
+	default:
+		args = append(args, filename)
+	}
+
+	return args
+}
+
+func openFile(filename string, lineNumber int) string {
+	runEditor(filename, lineNumber)
+	return ""
+}
+
+func runEditor(filename string, lineNumber int) {
+	editor := os.Getenv("EDITOR")
+	path, err := exec.LookPath(editor)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	args := getEditorArgs(editor, filename, lineNumber)
+
+	cmd := exec.Command(path, args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Start()
+
+	if err != nil {
+		fmt.Printf("Start failed: %s", err)
+	}
+
+	err = cmd.Wait()
+
+	if err != nil {
+		fmt.Printf("Wait failed: %s", err)
+	}
+}
+
 func openEditor(body string) string {
 	tmpDir := os.TempDir()
 
@@ -73,27 +123,7 @@ func openEditor(body string) string {
 		log.Fatal(err)
 	}
 
-	// TODO configure based on $EDITOR
-	path, err := exec.LookPath("vim")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cmd := exec.Command(path, tmpFile.Name())
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Start()
-
-	if err != nil {
-		fmt.Printf("Start failed: %s", err)
-	}
-
-	err = cmd.Wait()
-
-	if err != nil {
-		fmt.Printf("Wait failed: %s", err)
-	}
+	runEditor(tmpFile.Name(), 0)
 
 	defer os.Remove(tmpFile.Name())
 
@@ -108,6 +138,10 @@ func openEditor(body string) string {
 	comment = comment[0:strings.Index(comment, fixedMarker)]
 	comment = strings.TrimRight(comment, "\n")
 
+	if len(comment) == 0 {
+		return ""
+	}
+
 	lines := strings.Split(comment, "\n")
 	isComment := regexp.MustCompile("^\\s*//")
 
@@ -120,8 +154,8 @@ func openEditor(body string) string {
 	return strings.Join(lines, "\n")
 
 }
-func promptForComment(body string) string {
-	fmt.Print("[e] to edit, [s] to skip: ")
+func promptForComment(body string, position token.Position) string {
+	fmt.Print("[e] to edit, [o] open original file, [s] to skip: ")
 	char, _, _ := bufio.NewReader(os.Stdin).ReadRune()
 
 	switch char {
@@ -129,6 +163,8 @@ func promptForComment(body string) string {
 		return ""
 	case 'e':
 		return openEditor(body)
+	case 'o':
+		return openFile(position.Filename, position.Line)
 	}
 
 	return ""
@@ -152,7 +188,8 @@ func runPackage(fset *token.FileSet, pkg *ast.Package) {
 					printNode(fset, fn)
 					fmt.Println()
 
-					text := promptForComment(nodeString(fset, fn))
+					position := fset.Position(fn.Pos())
+					text := promptForComment(nodeString(fset, fn), position)
 
 					if text == "" {
 						return true
