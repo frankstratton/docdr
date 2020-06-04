@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -172,6 +173,7 @@ func promptForComment(body string, position token.Position) string {
 
 func runPackage(fset *token.FileSet, pkg *ast.Package) {
 	for filename, f := range pkg.Files {
+		fmt.Println(filename)
 		comments := []*ast.CommentGroup{}
 		ast.Inspect(f, func(n ast.Node) bool {
 			c, ok := n.(*ast.CommentGroup)
@@ -217,6 +219,58 @@ func runPackage(fset *token.FileSet, pkg *ast.Package) {
 
 }
 
+type Stat struct {
+	Count    int
+	Total    int
+	Coverage float64
+}
+
+func analyzePackage(fset *token.FileSet, pkg *ast.Package) Stat {
+	count := 0
+	total := 0
+
+	for _, f := range pkg.Files {
+		ast.Inspect(f, func(n ast.Node) bool {
+			fn, ok := n.(*ast.FuncDecl)
+			if ok {
+				total += 1
+				if fn.Doc.Text() != "" {
+					count += 1
+				}
+			}
+
+			return true
+		})
+	}
+
+	return Stat{
+		count,
+		total,
+		float64(count) / float64(total),
+	}
+}
+
+func analyzePackages(fset *token.FileSet, packages map[string]*ast.Package) map[string]Stat {
+	stats := map[string]Stat{}
+
+	for name, p := range packages {
+		stats[name] = analyzePackage(fset, p)
+	}
+
+	return stats
+}
+
+type Pair struct {
+	Key   string
+	Value Stat
+}
+
+type PairList []Pair
+
+func (p PairList) Len() int           { return len(p) }
+func (p PairList) Less(i, j int) bool { return p[i].Value.Coverage < p[j].Value.Coverage }
+func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
 func ScanPackage(targetDirectory string, targetPackage string) {
 	fset := token.NewFileSet()
 
@@ -259,8 +313,18 @@ func ScanPackage(targetDirectory string, targetPackage string) {
 			runPackage(fset, p)
 		}
 	} else {
-		for name, _ := range pkgs {
-			fmt.Println("\t" + name)
+		stats := analyzePackages(fset, pkgs)
+
+		list := make(PairList, len(stats))
+		i := 0
+		for name, cover := range stats {
+			list[i] = Pair{name, cover}
+			i++
+		}
+		sort.Sort(sort.Reverse(list))
+
+		for _, pairs := range list {
+			fmt.Printf("\t%d\t%f\t%s\n", pairs.Value.Total, pairs.Value.Coverage, pairs.Key)
 		}
 
 		//for _, p := range pkgs {
