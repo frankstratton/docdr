@@ -234,7 +234,7 @@ func analyzePackage(fset *token.FileSet, pkg *ast.Package) Stat {
 			fn, ok := n.(*ast.FuncDecl)
 			if ok {
 				total += 1
-				if fn.Doc.Text() != "" {
+				if fn.Name.IsExported() && fn.Doc.Text() != "" {
 					count += 1
 				}
 			}
