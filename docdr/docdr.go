@@ -233,9 +233,11 @@ func analyzePackage(fset *token.FileSet, pkg *ast.Package) Stat {
 		ast.Inspect(f, func(n ast.Node) bool {
 			fn, ok := n.(*ast.FuncDecl)
 			if ok {
-				total += 1
-				if fn.Name.IsExported() && fn.Doc.Text() != "" {
-					count += 1
+				if fn.Name.IsExported() {
+					total += 1
+					if fn.Doc.Text() != "" {
+						count += 1
+					}
 				}
 			}
 
