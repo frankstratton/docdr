@@ -326,7 +326,7 @@ func ScanPackage(targetDirectory string, targetPackage string) {
 		sort.Sort(sort.Reverse(list))
 
 		for _, pairs := range list {
-			fmt.Printf("\t%d\t%f\t%s\n", pairs.Value.Total, pairs.Value.Coverage, pairs.Key)
+			fmt.Printf("\t%d\t%.2f%%\t%s\n", pairs.Value.Total, (pairs.Value.Coverage * 100.0), pairs.Key)
 		}
 
 		//for _, p := range pkgs {
