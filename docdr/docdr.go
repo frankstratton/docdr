@@ -45,6 +45,7 @@ func nodeString(fset *token.FileSet, node ast.Node) string {
 
 	return s
 }
+
 func writeFile(fset *token.FileSet, node ast.Node, filename string) {
 	s := nodeString(fset, node)
 	ioutil.WriteFile(filename, []byte(s), 0644)
@@ -173,14 +174,9 @@ func promptForComment(body string, position token.Position) string {
 
 func runPackage(fset *token.FileSet, pkg *ast.Package) {
 	for filename, f := range pkg.Files {
-		fmt.Println(filename)
-		comments := []*ast.CommentGroup{}
-		ast.Inspect(f, func(n ast.Node) bool {
-			c, ok := n.(*ast.CommentGroup)
-			if ok {
-				comments = append(comments, c)
-			}
+		changed := false
 
+		ast.Inspect(f, func(n ast.Node) bool {
 			fn, ok := n.(*ast.FuncDecl)
 			if ok {
 				if fn.Name.IsExported() && fn.Doc.Text() == "" {
@@ -192,6 +188,8 @@ func runPackage(fset *token.FileSet, pkg *ast.Package) {
 
 					position := fset.Position(fn.Pos())
 					text := promptForComment(nodeString(fset, fn), position)
+
+					fmt.Println(text)
 
 					if text == "" {
 						return true
@@ -205,16 +203,18 @@ func runPackage(fset *token.FileSet, pkg *ast.Package) {
 					cg := &ast.CommentGroup{
 						List: []*ast.Comment{comment},
 					}
+
 					fn.Doc = cg
+					f.Comments = append(f.Comments, cg)
+					changed = true
 				}
 			}
 			return true
 		})
 
-		// set ast's comments to the collected comments
-		f.Comments = comments
-
-		writeFile(fset, f, filename)
+		if changed {
+			writeFile(fset, f, filename)
+		}
 	}
 
 }
