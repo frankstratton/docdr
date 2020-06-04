@@ -260,16 +260,16 @@ func analyzePackages(fset *token.FileSet, packages map[string]*ast.Package) map[
 	return stats
 }
 
-type Pair struct {
+type StatPair struct {
 	Key   string
 	Value Stat
 }
 
-type PairList []Pair
+type StatPairList []StatPair
 
-func (p PairList) Len() int           { return len(p) }
-func (p PairList) Less(i, j int) bool { return p[i].Value.Coverage < p[j].Value.Coverage }
-func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p StatPairList) Len() int           { return len(p) }
+func (p StatPairList) Less(i, j int) bool { return p[i].Value.Coverage < p[j].Value.Coverage }
+func (p StatPairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func ScanPackage(targetDirectory string, targetPackage string) {
 	fset := token.NewFileSet()
@@ -315,10 +315,10 @@ func ScanPackage(targetDirectory string, targetPackage string) {
 	} else {
 		stats := analyzePackages(fset, pkgs)
 
-		list := make(PairList, len(stats))
+		list := make(StatPairList, len(stats))
 		i := 0
 		for name, cover := range stats {
-			list[i] = Pair{name, cover}
+			list[i] = StatPair{name, cover}
 			i++
 		}
 		sort.Sort(sort.Reverse(list))
