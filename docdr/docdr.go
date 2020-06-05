@@ -270,12 +270,20 @@ type StatPair struct {
 
 type StatPairList []StatPair
 
+// Len is the number of elements in the collection. Required for sort.Sort
 func (p StatPairList) Len() int { return len(p) }
+
+// Returns true if i should come before j in sorted order
 func (p StatPairList) Less(i, j int) bool {
 	return p[i].Value.Coverage < p[j].Value.Coverage || math.IsNaN(p[i].Value.Coverage)
 }
+
+// Swaps elements i and j, used by sort.Sort
 func (p StatPairList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
+// Scans the given directory and parses ast.Package objects
+// If a targetPackage is specified we process functions within it otherwise
+// we print stats on godoc comment coverage for all packages
 func ScanPackage(targetDirectory string, targetPackage string) {
 	fset := token.NewFileSet()
 
