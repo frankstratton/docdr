@@ -1,4 +1,4 @@
-module github.com/frankstratton/DocDr
+module github.com/frankstratton/docdr
 
 go 1.13
 

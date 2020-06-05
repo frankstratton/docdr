@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/frankstratton/DocDr/cmd"
+	"github.com/frankstratton/docdr/cmd"
 )
 
 func main() {
