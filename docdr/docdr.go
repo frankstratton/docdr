@@ -10,6 +10,7 @@ import (
 	"go/token"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -269,9 +270,11 @@ type StatPair struct {
 
 type StatPairList []StatPair
 
-func (p StatPairList) Len() int           { return len(p) }
-func (p StatPairList) Less(i, j int) bool { return p[i].Value.Coverage < p[j].Value.Coverage }
-func (p StatPairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p StatPairList) Len() int { return len(p) }
+func (p StatPairList) Less(i, j int) bool {
+	return p[i].Value.Coverage < p[j].Value.Coverage || math.IsNaN(p[i].Value.Coverage)
+}
+func (p StatPairList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
 func ScanPackage(targetDirectory string, targetPackage string) {
 	fset := token.NewFileSet()
