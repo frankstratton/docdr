@@ -34,6 +34,10 @@ docdr run <source directory> <package name>
   heuristic measure; e.g. -- least covered package + longest function
 * Add interactive commands:
 	* n: Never ask again; add a default doc string so we always skip this function
+	* x: Exit and write any pending changes (currently if you are using [e] it
+	  only calls writeFile when you've finished all comments in the current
+file.  We should also maybe catch ctrl-c and write pending changes or prompt
+to discard
 * Fix offsets when editing the original file. Currently we don't rescan/reload Positions
   so if you add comments to one function, the next edit in the same file opens to the wrong line.
 * Other editor support as necessary
