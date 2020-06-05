@@ -190,8 +190,6 @@ func runPackage(fset *token.FileSet, pkg *ast.Package) {
 					position := fset.Position(fn.Pos())
 					text := promptForComment(nodeString(fset, fn), position)
 
-					fmt.Println(text)
-
 					if text == "" {
 						return true
 					}
