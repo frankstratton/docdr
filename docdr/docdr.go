@@ -279,41 +279,46 @@ func (p StatPairList) Less(i, j int) bool {
 // Swaps elements i and j, used by sort.Sort
 func (p StatPairList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
 
+func getPackages(fset *token.FileSet, targetDirectory string) (map[string]*ast.Package, error) {
+	pkgs := make(map[string]*ast.Package)
+
+	var first error
+
+	err := filepath.Walk(targetDirectory, func(path string, info os.FileInfo, err error) error {
+		if strings.HasSuffix(info.Name(), ".go") {
+			if src, err := parser.ParseFile(fset, path, nil, parser.ParseComments); err == nil {
+				name := src.Name.Name
+				pkg, found := pkgs[name]
+				if !found {
+					pkg = &ast.Package{
+						Name:  name,
+						Files: make(map[string]*ast.File),
+					}
+
+					pkgs[name] = pkg
+				}
+
+				pkg.Files[path] = src
+
+			} else if first == nil {
+				first = err
+
+			}
+
+		}
+		return first
+	})
+
+	return pkgs, err
+}
+
 // Scans the given directory and parses ast.Package objects
 // If a targetPackage is specified we process functions within it otherwise
 // we print stats on godoc comment coverage for all packages
 func ScanPackage(targetDirectory string, targetPackage string) {
 	fset := token.NewFileSet()
 
-	pkgs := make(map[string]*ast.Package)
-
-	var first error
-
-	err := filepath.Walk(targetDirectory,
-		func(path string, info os.FileInfo, err error) error {
-			if strings.HasSuffix(info.Name(), ".go") {
-				if src, err := parser.ParseFile(fset, path, nil, parser.ParseComments); err == nil {
-					name := src.Name.Name
-					pkg, found := pkgs[name]
-					if !found {
-						pkg = &ast.Package{
-							Name:  name,
-							Files: make(map[string]*ast.File),
-						}
-
-						pkgs[name] = pkg
-					}
-
-					pkg.Files[path] = src
-
-				} else if first == nil {
-					first = err
-
-				}
-
-			}
-			return first
-		})
+	pkgs, err := getPackages(fset, targetDirectory)
 
 	if err != nil {
 		log.Fatal(err)
@@ -338,8 +343,5 @@ func ScanPackage(targetDirectory string, targetPackage string) {
 			fmt.Printf("\t%d\t%.2f%%\t%s\n", pairs.Value.Total, (pairs.Value.Coverage * 100.0), pairs.Key)
 		}
 
-		//for _, p := range pkgs {
-		//	runPackage(p, fset)
-		//}
 	}
 }
