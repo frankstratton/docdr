@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/frankstratton/docdr/docdr"
+	"github.com/frankstratton/docdr/internal"
 	"github.com/spf13/cobra"
 )
 
