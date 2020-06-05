@@ -6,7 +6,7 @@ comments and rewrites your source files.
 
 # Install & Usage
 
-> :warning: **This project is considered an alpha; it may have unintented sideeffects; always backup your work before running**
+> :warning: **This project is considered an alpha; it may have unintented side effects; always backup your work before running**
 
 ## Install
 
